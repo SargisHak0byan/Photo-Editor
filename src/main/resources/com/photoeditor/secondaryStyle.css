@@ -1,0 +1,41 @@
+.root{
+	-fx-background-color: #525252;
+}
+
+.label{
+	-fx-text-fill: #bfc1bd;
+}
+
+.button{
+	-fx-border-radius: 6 6 6 6;
+	-fx-background-radius: 6 6 6 6;
+	-fx-background-color: #949494;
+	-fx-border-color: #737373;
+	-fx-border-width: 1;
+}
+
+.button:hover{
+	-fx-background-color: #bfbfbf;
+	-fx-border-color: #949494;
+}
+
+.hyperlink{
+	-fx-border-color: transparent;
+}
+
+.hyperlink:hover, .hyperlink:visited:hover{
+	-fx-text-fill: #ea5353;
+}
+
+.hyperlink:visited{
+	-fx-text-fill: #bfc1bd;
+}
+
+.title-label{
+	-fx-font-weight: bold;
+	-fx-font-size: 20px;
+	-fx-font-alpha: 100;
+	-fx-text-alpha: 100;
+}
+
+
