@@ -25,6 +25,9 @@
 <?import javafx.scene.Group?>
 <?import javafx.geometry.Insets?>
 
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
 <BorderPane xmlns="http://javafx.com/javafx/17.0.2-ea"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.photoeditor.Controller"
@@ -69,6 +72,7 @@
                     <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                     <ColumnConstraints percentWidth="15.0" halignment="CENTER"/>
                     <ColumnConstraints percentWidth="25.0" halignment="CENTER"/>
+                    <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                     <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                     <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                 </columnConstraints>
@@ -206,7 +210,7 @@
                             </ColorPicker>
                         </children>
                     </GridPane>
-                    <GridPane GridPane.rowIndex="0" GridPane.columnIndex="4">
+                    <GridPane GridPane.rowIndex="0" GridPane.columnIndex="4" styleClass="pane-with-border">
                         <rowConstraints>
                             <RowConstraints percentHeight="20.0" valignment="CENTER"/>
                             <RowConstraints percentHeight="80.0" valignment="CENTER"/>
@@ -215,7 +219,7 @@
                             <ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
                         </columnConstraints>
                         <children>
-                            <Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Controls:" styleClass="highlight-label"/>
+                            <Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Controls" styleClass="highlight-label"/>
                             <GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
                                 <rowConstraints>
                                     <RowConstraints percentHeight="100.0" valignment="CENTER"/>
@@ -231,6 +235,39 @@
                                     <Button GridPane.rowIndex="0" GridPane.columnIndex="1" onAction="#handle" disable="true" fx:id="redoButton" id="redo-button">
                                         <tooltip><Tooltip text="Redo"/></tooltip>
                                     </Button>
+                                </children>
+                            </GridPane>
+                        </children>
+                    </GridPane>
+                    <GridPane GridPane.rowIndex="0" GridPane.columnIndex="5" >
+                        <rowConstraints>
+                            <RowConstraints percentHeight="20.0" valignment="CENTER"/>
+                            <RowConstraints percentHeight="80.0" valignment="CENTER"/>
+                        </rowConstraints>
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+                        </columnConstraints>
+                        <children>
+                            <Label  text="Filters" styleClass="highlight-label"/>
+                            <GridPane GridPane.rowIndex="1" GridPane.columnIndex="0"  styleClass="highlight-label">
+                                <rowConstraints>
+                                    <RowConstraints percentHeight="80.0" valignment="CENTER"/>
+                                </rowConstraints>
+                                <columnConstraints>
+                                    <ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+                                </columnConstraints>
+                                <children>
+                                    <ComboBox value="None" onAction="#handle" fx:id="filtersBox" id="filters-box">
+                                        <items>
+                                            <FXCollections fx:factory="observableArrayList">
+                                                <String fx:value="None"/>
+                                                <String fx:value="Light"/>
+                                                <String fx:value="Dark"/>
+                                                <String fx:value="Blur"/>
+                                                <String fx:value="Invert"/>
+                                            </FXCollections>
+                                        </items>
+                                    </ComboBox>
                                 </children>
                             </GridPane>
                         </children>

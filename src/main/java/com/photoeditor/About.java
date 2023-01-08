@@ -23,7 +23,7 @@ public class About {
 		window.setTitle("About");
 		
 		ImageView logo = new ImageView(new Image(getClass().getResource("windowIcon.png").toString()));
-		Label titleLabel = new Label("Picture Editor for Windows");
+		Label titleLabel = new Label("Picture Editor for Java exam");
 		titleLabel.setPadding(new Insets(5,0,10,0));
 		titleLabel.getStyleClass().add("title-label");
 		Label versionLabel = new Label("Software Version 1.0.0");
@@ -31,25 +31,11 @@ public class About {
 		licenseLabel.setPadding(new Insets(0,0,5,0));
 		Label developersLabel = new Label("Developer(s):");
 		Hyperlink developersHyperlink = new Hyperlink("Sargis Hakobyan");
-		developersHyperlink.setOnAction(e->{
-			MainWindow.hostServices.showDocument("https://github.com/Arabadzhiew");
-		});
 		HBox developersBox = new HBox();
 		developersBox.setAlignment(Pos.CENTER);
 		developersBox.getChildren().addAll(developersLabel,developersHyperlink);
-		Label creditsLabel1 = new Label("Icons made by");
-		Hyperlink creditsHyperlink1 = new Hyperlink("Freepik");
-		creditsHyperlink1.setOnAction(e->{
-			MainWindow.hostServices.showDocument("https://www.freepik.com");
-		});
-		Label creditsLabel2 = new Label("from");
-		Hyperlink creditsHyperlink2 = new Hyperlink("www.flaticon.com");
-		creditsHyperlink2.setOnAction(e->{
-			MainWindow.hostServices.showDocument("https://www.flaticon.com/");
-		});
 		HBox creditsBox = new HBox();
 		creditsBox.setAlignment(Pos.CENTER);
-		creditsBox.getChildren().addAll(creditsLabel1,creditsHyperlink1,creditsLabel2,creditsHyperlink2);
 		Label copyrightLabel = new Label("Copyright � 2023 Sargis Hakobyan. All rights reserved.");
 		copyrightLabel.setPadding(new Insets(50,0,0,0));
 		copyrightLabel.setOpacity(0.6);

@@ -1,5 +1,7 @@
 package com.photoeditor;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -10,6 +12,7 @@ import java.util.Queue;
 import java.util.ResourceBundle;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -26,16 +29,13 @@ import javafx.scene.ImageCursor;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.*;
 import javafx.scene.control.Button;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
@@ -139,6 +139,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private Label savedLabel;
 	@FXML private Slider scaleSlider;
 	@FXML private Label scaleLabel;
+
+	@FXML private ComboBox filtersBox;
 	
 	@FXML public ScrollPane canvasPane;
 	@FXML public  ColorPicker colorPicker;
@@ -1119,7 +1121,19 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}
 		}
 	}
+	public static BufferedImage toBufferedImage(java.awt.Image img)
+	{
+		// Create a buffered image with transparency
+		BufferedImage bimage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_3BYTE_BGR);
 
+		// Draw the image on to the buffered image
+		Graphics2D bGr = bimage.createGraphics();
+		bGr.drawImage(img, 0, 0, null);
+		bGr.dispose();
+
+		// Return the buffered image
+		return bimage;
+	}
 	@Override
 	public void handle(ActionEvent e) {
 		Object source = e.getSource();
@@ -1235,6 +1249,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			currentTool = OVAL_DRAWER;
 			canvas.setCursor(Cursor.CROSSHAIR);
 		}else if(source.equals(triangleButton)) {
+			System.out.println("tri");
 			toDisable.add(triangleButton);
 			buttonManagement(toDisable);
 			currentTool = TRIANGLE_DRAWER;
@@ -1253,6 +1268,25 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}else if(currentTool==TEXT_EDIT) {
 				currentTool=TEXT;
 			}
+		} else if (source.equals(filtersBox)) {
+			FiltersClass filterTool = new FiltersClass();
+			WritableImage wi = new WritableImage((int)gc.getCanvas().getWidth(),
+					(int)gc.getCanvas().getHeight());
+			gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
+			BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
+			if (filtersBox.getValue().equals("Light")){
+				img = filterTool.lightenImage(img);
+			} else if (filtersBox.getValue().equals("Dark")){
+				img = filterTool.darkenImage(img);
+			} else  if (filtersBox.getValue().equals("Blur")){
+				img = filterTool.blurImage(img);
+			} else if (filtersBox.getValue().equals("Invert")){
+				img = filterTool.invertImage(img);
+			}
+
+			addNewSnapshot(SwingFXUtils.toFXImage(img, null));
+			gc.drawImage(SwingFXUtils.toFXImage(img, null),0,0);
+			filtersBox.setValue("None");
 		}
 	}
 }
