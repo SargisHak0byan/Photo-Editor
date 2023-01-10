@@ -30,16 +30,20 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.videoio.VideoCapture;
+import org.opencv.core.MatOfByte;
+import org.opencv.imgcodecs.Imgcodecs;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
-import java.awt.image.WritableRaster;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 import java.util.Queue;
@@ -143,6 +147,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML public ScrollPane canvasPane;
 	@FXML public  ColorPicker colorPicker;
 
+	private  int capture_width = 1280;
+	private  int capture_height = 720;
+
 	private ArrayList<Button> linkedButtons = new ArrayList<Button>();
 	
 	@Override
@@ -182,7 +189,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		widthField.setText(""+(int)canvas.getWidth());
 		heightField.setText(""+(int)canvas.getHeight());
 		widthField.textProperty().addListener((property, oldValue, newValue) -> { 
-			int parsedNewVal = parseFromTextField(widthField,newValue,600);
+			int parsedNewVal = parseFromTextField(widthField,newValue,capture_width);
 			if(parsedNewVal>3840) {
 				widthField.setText(""+3840);
 			}else if(parsedNewVal!=0&&canvas.getWidth()!=parsedNewVal) {
@@ -198,7 +205,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}
 		});
 		heightField.textProperty().addListener((property, oldValue, newValue) -> {
-			int parsedNewVal = parseFromTextField(heightField,newValue,400);
+			int parsedNewVal = parseFromTextField(heightField,newValue,capture_height);
 			if(parsedNewVal>2160) {
 				heightField.setText(""+2160);
 			}else if(parsedNewVal!=0&&canvas.getHeight()!=parsedNewVal) {
@@ -275,7 +282,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		savedImageView.setFitHeight(16);
 		notSavedImageView.setFitWidth(16);
 		notSavedImageView.setFitHeight(16);
-		
+
 		ImageView cropImageView = new ImageView(new Image(getClass().getResource("buttonImages/crop.png").toString()));
 		cropImageView.setFitWidth(20);
 		cropImageView.setFitHeight(20);
@@ -900,28 +907,40 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}
 	}
 
-	public void capure() {
-		WritableImage WritableImage = null;
-		System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
-		VideoCapture c = new VideoCapture(0);
-		Mat matrix = new Mat();
-		c.read(matrix);
-		if( c.isOpened()) {
-			if (c.read(matrix)) {
-				BufferedImage image = new BufferedImage(matrix.width(),
-						matrix.height(), BufferedImage.TYPE_3BYTE_BGR);
+	public void capture() {
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+		EventQueue.invokeLater(new Runnable() {
+			Mat image;
+			@Override public void run()
+			{
+				final Camera camera = new Camera();
 
-				WritableRaster raster = image.getRaster();
-				DataBufferByte dataBuffer = (DataBufferByte) raster.getDataBuffer();
-				byte[] d = dataBuffer.getData();
-				matrix.get(0, 0, d);
-				WritableImage = SwingFXUtils.toFXImage(image, null);
-				gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-				gc.drawImage(WritableImage, 0, 0);
-				addNewSnapshot();
-				c.release();
+				camera.btnCapture.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(java.awt.event.ActionEvent e)
+					{
+						image = camera.image;
+					    gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+						WritableImage obj = null;
+						try {
+							obj = Mat2WritableImage(image);
+						} catch (IOException ex) {
+							throw new RuntimeException(ex);
+						}
+						gc.drawImage(obj, 0, 0);
+					    addNewSnapshot(obj);
+						camera.stop(0);
+						camera.dispose();
+					}
+				});
+				new Thread(new Runnable() {
+					@Override public void run()
+					{
+						camera.start(0);
+					}
+				}).start();
 			}
-		}
+		});
 	}
 	private void edit() {
 		imageDirectory.setTitle("Choose a input file");
@@ -963,6 +982,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	
 	private void save() {
 		WritableImage snapshot = canvas.snapshot(sParameters, null);
+		FiltersClass filterTool = new FiltersClass();
 		String extention="";
 		if(file!=null) {
 			String path = file.getName();
@@ -1155,6 +1175,33 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		// Return the buffered image
 		return bimage;
 	}
+	public static Mat bufferedImageToMat(BufferedImage bi) {
+		Mat mat = new Mat(bi.getHeight(), bi.getWidth(), CvType.CV_8UC3);
+		byte[] data = ((DataBufferByte) bi.getRaster().getDataBuffer()).getData();
+		mat.put(0, 0, data);
+		return mat;
+	}
+	public static BufferedImage Mat2BufferedImage(Mat matrix)throws Exception {
+		MatOfByte mob=new MatOfByte();
+		Imgcodecs.imencode(".jpg", matrix, mob);
+		byte ba[]=mob.toArray();
+
+		BufferedImage bi=ImageIO.read(new ByteArrayInputStream(ba));
+		return bi;
+	}
+
+	public static WritableImage Mat2WritableImage(Mat mat) throws IOException{
+		//Encoding the image
+		MatOfByte matOfByte = new MatOfByte();
+		Imgcodecs.imencode(".jpg", mat, matOfByte);
+		//Storing the encoded Mat in a byte array
+		byte[] byteArray = matOfByte.toArray();
+		//Preparing the Buffered Image
+		InputStream in = new ByteArrayInputStream(byteArray);
+		BufferedImage bufImage = ImageIO.read(in);
+		WritableImage writableImage = SwingFXUtils.toFXImage(bufImage, null);
+		return writableImage;
+	}
 	@Override
 	public void handle(ActionEvent e) {
 		Object source = e.getSource();
@@ -1178,12 +1225,12 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			canvasAnchor.getChildren().remove(canvasText);
 		}
 		if(source.equals(newItem)) {
-			canvasSnapshotAnchor.setPrefWidth(600);
-			canvas.setWidth(600);
-			widthField.setText("600");
-			canvasSnapshotAnchor.setPrefHeight(400);
-			canvas.setHeight(400);
-			heightField.setText("400");
+			canvasSnapshotAnchor.setPrefWidth(capture_width);
+			canvas.setWidth(capture_width);
+			widthField.setText(String.valueOf(capture_width));
+			canvasSnapshotAnchor.setPrefHeight(capture_height);
+			canvas.setHeight(capture_height);
+			heightField.setText(String.valueOf(capture_height));
 			gc.setStroke(Color.WHITE);
 			gc.setFill(Color.WHITE);
 			gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
@@ -1194,7 +1241,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}else if(source.equals(openItem)) {
 			open();
 		}else if (source.equals(captureItem)){
-			capure();
+			capture();
 		}else if(source.equals(editItem)) {
 			edit();
 		}else if(source.equals(saveItem)) {
@@ -1272,7 +1319,6 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			currentTool = OVAL_DRAWER;
 			canvas.setCursor(Cursor.CROSSHAIR);
 		}else if(source.equals(triangleButton)) {
-			System.out.println("tri");
 			toDisable.add(triangleButton);
 			buttonManagement(toDisable);
 			currentTool = TRIANGLE_DRAWER;
@@ -1297,7 +1343,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 					(int)gc.getCanvas().getHeight());
 			gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
 			BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
-			if (filtersBox.getValue().equals("Light")){
+			if (filtersBox.getValue().equals("Gray")){
+				img = filterTool.grayImage(img);
+			}else if (filtersBox.getValue().equals("Light")){
 				img = filterTool.lightenImage(img);
 			} else if (filtersBox.getValue().equals("Dark")){
 				img = filterTool.darkenImage(img);
@@ -1305,8 +1353,13 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				img = filterTool.blurImage(img);
 			} else if (filtersBox.getValue().equals("Invert")){
 				img = filterTool.invertImage(img);
+			} else if(filtersBox.getValue().equals("Mirror")) {
+				img = filterTool.mirrorImage(img);
+			} else if (filtersBox.getValue().equals("Sepia")){
+				img = filterTool.sepiaImage(img);
 			}
 
+			filterTool.WaterMark(img,"", img.getWidth() / 5, img.getHeight() / 3);
 			addNewSnapshot(SwingFXUtils.toFXImage(img, null));
 			gc.drawImage(SwingFXUtils.toFXImage(img, null),0,0);
 			filtersBox.setValue("None");
