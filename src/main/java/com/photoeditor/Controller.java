@@ -1,19 +1,5 @@
 package com.photoeditor;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.ResourceBundle;
-
-import javax.imageio.ImageIO;
-import javax.swing.*;
-
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -29,24 +15,35 @@ import javafx.scene.ImageCursor;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.image.WritableImage;
+import javafx.scene.image.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.videoio.VideoCapture;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+import java.util.Queue;
+import java.util.*;
 public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private final int CROP = 1;
 	private final int MOVE = 2;
@@ -105,6 +102,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private BorderPane rootPane;
 	@FXML private MenuItem newItem;
 	@FXML private MenuItem openItem;
+	@FXML private MenuItem captureItem;
 	@FXML private MenuItem editItem;
 	@FXML private MenuItem saveItem;
 	@FXML private MenuItem saveAsItem;
@@ -901,7 +899,30 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			//
 		}
 	}
-	
+
+	public void capure() {
+		WritableImage WritableImage = null;
+		System.loadLibrary( Core.NATIVE_LIBRARY_NAME );
+		VideoCapture c = new VideoCapture(0);
+		Mat matrix = new Mat();
+		c.read(matrix);
+		if( c.isOpened()) {
+			if (c.read(matrix)) {
+				BufferedImage image = new BufferedImage(matrix.width(),
+						matrix.height(), BufferedImage.TYPE_3BYTE_BGR);
+
+				WritableRaster raster = image.getRaster();
+				DataBufferByte dataBuffer = (DataBufferByte) raster.getDataBuffer();
+				byte[] d = dataBuffer.getData();
+				matrix.get(0, 0, d);
+				WritableImage = SwingFXUtils.toFXImage(image, null);
+				gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+				gc.drawImage(WritableImage, 0, 0);
+				addNewSnapshot();
+				c.release();
+			}
+		}
+	}
 	private void edit() {
 		imageDirectory.setTitle("Choose a input file");
 		imageDirectory.getExtensionFilters().clear();
@@ -1172,6 +1193,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}
 		}else if(source.equals(openItem)) {
 			open();
+		}else if (source.equals(captureItem)){
+			capure();
 		}else if(source.equals(editItem)) {
 			edit();
 		}else if(source.equals(saveItem)) {

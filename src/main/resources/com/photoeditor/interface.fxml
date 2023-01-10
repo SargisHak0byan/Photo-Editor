@@ -40,6 +40,7 @@
                 <Menu text="File">
                     <MenuItem text="New" onAction="#handle" fx:id="newItem"/>
                     <MenuItem text="Open" onAction="#handle" fx:id="openItem"/>
+                    <MenuItem text="Capture" onAction="#handle" fx:id="captureItem"/>
                     <MenuItem text="Edit" onAction="#handle" fx:id="editItem"/>
                     <MenuItem text="Save" onAction="#handle" disable="true" fx:id="saveItem">
                         <accelerator>
