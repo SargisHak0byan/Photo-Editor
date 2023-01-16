@@ -984,7 +984,6 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	
 	private void save() {
 		WritableImage snapshot = canvas.snapshot(sParameters, null);
-		Filters filterTool = new Filters();
 		String extention="";
 		if(file!=null) {
 			String path = file.getName();
@@ -1353,17 +1352,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}
 	}
 	private void masksBox_check(){
-		Filters filterTool = new Filters();
 		WritableImage wi = new WritableImage((int)gc.getCanvas().getWidth(),
 				(int)gc.getCanvas().getHeight());
 		gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
 		BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
-		if (masksBox.getValue().equals("Dog")){
-			try {
-				img = filterTool.mask(img, "Dog");
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+		Filters filterTool = new Filters(img);
+		try {
+			img = filterTool.mask(img, (String) masksBox.getValue());
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 
 		addNewSnapshot(SwingFXUtils.toFXImage(img, null));
@@ -1371,11 +1368,11 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		filtersBox.setValue("None");
 	}
 	private void filterBox_check() {
-		Filters filterTool = new Filters();
 		WritableImage wi = new WritableImage((int)gc.getCanvas().getWidth(),
 				(int)gc.getCanvas().getHeight());
 		gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
 		BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
+		Filters filterTool = new Filters(img);
 		if (filtersBox.getValue().equals("Gray")){
 			img = filterTool.grayImage(img);
 		}else if (filtersBox.getValue().equals("Light")){
@@ -1390,6 +1387,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			img = filterTool.mirrorImage(img);
 		} else if (filtersBox.getValue().equals("Sepia")){
 			img = filterTool.sepiaImage(img);
+		} else if (filtersBox.getValue().equals("None")){
+			img = filterTool.fist;
 		}
 
 		filterTool.WaterMark(img,"", img.getWidth() / 5, img.getHeight() / 3);

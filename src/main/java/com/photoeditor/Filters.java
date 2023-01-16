@@ -7,15 +7,20 @@ import org.opencv.objdetect.CascadeClassifier;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
 import java.awt.image.RescaleOp;
+import java.io.IOException;
 
 import static com.photoeditor.Controller.bufferedImageToMat;
 
 
 public class Filters {
+    Filters(BufferedImage BI){
+        fist = BI;
+    }
     private void addImage(BufferedImage buff1, BufferedImage buff2,
                           float opaque, int x, int y) {
         Graphics2D g2d = buff1.createGraphics();
@@ -24,8 +29,9 @@ public class Filters {
         g2d.drawImage(buff2, x, y, null);
         g2d.dispose();
     }
+    BufferedImage fist;
 
-    private static BufferedImage resize(BufferedImage img, int newW, int newH) {
+    public static BufferedImage resize(BufferedImage img, int newW, int newH) {
         int w = img.getWidth();
         int h = img.getHeight();
         BufferedImage dimg = new BufferedImage(newW, newH, img.getType());
@@ -36,46 +42,147 @@ public class Filters {
         g.dispose();
         return dimg;
     }
-    public  BufferedImage mask(BufferedImage BI, String type) throws Exception {
-        CascadeClassifier cascadeFaceClassifier = new CascadeClassifier(
-                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_frontalface_default.xml");
-        CascadeClassifier cascadeEyeClassifier = new CascadeClassifier(
-                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_eye.xml");
-        CascadeClassifier cascadeNoseClassifier = new CascadeClassifier(
-                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_nose.xml");
-        CascadeClassifier cascadeMouthClassifier = new CascadeClassifier(
-                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_mouth.xml");
 
+    private BufferedImage detectNose(BufferedImage BI, String type, Point2D.Double scale){
+       CascadeClassifier cascadeNoseClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_nose.xml");
+        Mat frameCapture = bufferedImageToMat(BI);
+
+        MatOfRect nose = new MatOfRect();
+        cascadeNoseClassifier.detectMultiScale(frameCapture, nose);
+
+          for (Rect rect : nose.toArray()) {
+              BufferedImage nose_ = null;
+              try {
+                  nose_ = ImageIO.read(this.getClass().getResource("snaps/" + type +"/nose.png"));
+              } catch (IOException e) {
+                  throw new RuntimeException(e);
+              }
+              nose_ = resize(nose_, (int) (rect.width / scale.x), (int) (rect.height/ scale.y));
+            addImage(BI,nose_, 1.0F, rect.x , rect.y );
+        }
+
+        return BI;
+    }
+
+    private  BufferedImage detectEar(BufferedImage BI, String type, Point2D.Double scale){
+       CascadeClassifier cascadeFaceClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_frontalface_default.xml");
         Mat frameCapture = bufferedImageToMat(BI);
 
         MatOfRect faces = new MatOfRect();
         cascadeFaceClassifier.detectMultiScale(frameCapture, faces);
-        MatOfRect nose = new MatOfRect();
-        cascadeNoseClassifier.detectMultiScale(frameCapture, nose);
-        MatOfRect mouth = new MatOfRect();
-        cascadeMouthClassifier.detectMultiScale(frameCapture, mouth);
-
         for (Rect rect : faces.toArray()) {
-            BufferedImage right = ImageIO.read(this.getClass().getResource("snaps/" + type +"/right.png"));
-            BufferedImage left = ImageIO.read(this.getClass().getResource("snaps/" + type +"/left.png"));
-            left = resize(left,rect.width / 2, rect.height / 2);
-            right = resize(right,rect.width / 2, rect.height / 2);
-            addImage(BI,left, 1.0F, (int) (rect.x - rect.width*0.2), (int) (rect.y - rect.height*0.2));
-            addImage(BI,right, 1.0F, (int) ((rect.x + rect.width) - rect.width*0.2), (int) (rect.y - rect.height*0.2));
+            BufferedImage right = null;
+            try {
+                right = ImageIO.read(this.getClass().getResource("snaps/" + type +"/right.png"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            BufferedImage left = null;
+            try {
+                left = ImageIO.read(this.getClass().getResource("snaps/" + type +"/left.png"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            left = resize(left, (int) (rect.width / scale.x), (int) (rect.height / scale.x));
+            right = resize(right, (int) (rect.width / scale.x), (int) (rect.height / scale.x));
+            addImage(BI,left, 1.0F, (int) (rect.x), (int) (rect.y - rect.height/scale.y));
+            addImage(BI,right, 1.0F, (int) ((rect.x + rect.width) - rect.width / scale.y), (int) (rect.y - rect.height/scale.y));
+        }
+        return BI;
+    }
+    private  BufferedImage detectFace(BufferedImage BI, String type, Point2D.Double scale){
+       CascadeClassifier cascadeFaceClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_frontalface_default.xml");
+        Mat frameCapture = bufferedImageToMat(BI);
+
+        MatOfRect faces = new MatOfRect();
+        cascadeFaceClassifier.detectMultiScale(frameCapture, faces);
+        for (Rect rect : faces.toArray()) {
+           BufferedImage face = null;
+            try {
+                face = ImageIO.read(this.getClass().getResource("snaps/" + type +"/face.png"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            face = resize(face, (int) (rect.width / scale.x*1.7), (int) (rect.height/scale.x));
+            addImage(BI,face, 1.0F, rect.x, (int) (rect.y + rect.height/scale.y));
+        }
+        return BI;
+    }
+
+    private  BufferedImage detectEye(BufferedImage BI, String type, Point2D.Double scale){
+       CascadeClassifier cascadeREyeClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_righteye.xml");
+       CascadeClassifier cascadeLEyeClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_lefteye.xml");
+
+       Mat frameCapture = bufferedImageToMat(BI);
+
+       MatOfRect Reye = new MatOfRect();
+        MatOfRect Leye = new MatOfRect();
+       cascadeREyeClassifier.detectMultiScale(frameCapture, Reye);
+        cascadeREyeClassifier.detectMultiScale(frameCapture, Leye);
+        for (Rect rect : Reye.toArray()) {
+            BufferedImage right = null;
+            try {
+                right = ImageIO.read(this.getClass().getResource("snaps/" + type +"/right.png"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            right = resize(right,rect.width , rect.height);
+            addImage(BI,right, 1.0F, rect.x, rect.y);
+        }
+        for (Rect rect : Leye.toArray()) {
+            BufferedImage left = null;
+            try {
+                left = ImageIO.read(this.getClass().getResource("snaps/" + type +"/left.png"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            left = resize(left, (int) (rect.width /scale.x), (int) (rect.height/scale.y));
+            addImage(BI,left, 1.0F, rect.x, rect.y);
         }
 
-
-        for (Rect rect : nose.toArray()) {
-            BufferedImage nose_ = ImageIO.read(this.getClass().getResource("snaps/" + type +"/nose.png"));
-            nose_ = resize(nose_,rect.width , rect.height );
-            addImage(BI,nose_, 1.0F, rect.x , rect.y );
+        return BI;
         }
 
+        private BufferedImage detectMouth(BufferedImage BI, String type, Point2D.Double scale ) {
+            CascadeClassifier cascadeMouthClassifier = new CascadeClassifier(
+                    "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_mouth.xml");
+            Mat frameCapture = bufferedImageToMat(BI);
+            MatOfRect mouth = new MatOfRect();
+            cascadeMouthClassifier.detectMultiScale(frameCapture, mouth);
 
-        for (Rect rect : mouth.toArray()) {
-            BufferedImage  tongue = ImageIO.read(this.getClass().getResource("snaps/" + type +"/mouth.png"));
-            tongue = resize(tongue,rect.width * 4, rect.height * 4 );
-            //addImage(BI,tongue, 1.0F, rect.x , rect.y );
+            for (Rect rect : mouth.toArray()) {
+                BufferedImage  tongue = null;
+                try {
+                    tongue = ImageIO.read(this.getClass().getResource("snaps/" + type +"/mouth.png"));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                tongue = resize(tongue, (int) (rect.width / scale.x), (int) (rect.height * scale.y));
+                addImage(BI,tongue, 1.0F, rect.x , rect.y );
+            }
+            return BI;
+        }
+    public  BufferedImage mask(BufferedImage BI, String type) throws Exception {
+        if (type.equals("None")){
+            return fist;
+        } else if (type.equals("Dog")) {
+            detectEar(BI, type,new Point2D.Double(3,5));
+            detectNose(BI, type,new Point2D.Double(1,1));
+        } else if (type.equals("Zombi")){
+            detectEye(BI, type,new Point2D.Double(1,1));
+        } else if (type.equals("Monster")){
+            detectFace(BI, type, new Point2D.Double(1.7,2.0));
+        } else if (type.equals("Mask")){
+            detectFace(BI, type, new Point2D.Double(1.8,2));
+        } else if (type.equals("Cat")){
+            detectFace(BI, type,new Point2D.Double(1.5,10));
         }
         return BI;
     }

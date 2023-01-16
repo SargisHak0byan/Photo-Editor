@@ -302,6 +302,10 @@
                                             <FXCollections fx:factory="observableArrayList">
                                                 <String fx:value="None"/>
                                                 <String fx:value="Dog"/>
+                                                <String fx:value="Zombi"/>
+                                                <String fx:value="Monster"/>
+                                                <String fx:value="Mask"/>
+                                                <String fx:value="Cat"/>
                                             </FXCollections>
                                         </items>
                                     </ComboBox>
