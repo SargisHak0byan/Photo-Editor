@@ -1,20 +1,92 @@
 package com.photoeditor;
 
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Rect;
+import org.opencv.objdetect.CascadeClassifier;
+
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
 import java.awt.image.RescaleOp;
 
-public class FiltersClass {
-    
+import static com.photoeditor.Controller.bufferedImageToMat;
+
+
+public class Filters {
+    private void addImage(BufferedImage buff1, BufferedImage buff2,
+                          float opaque, int x, int y) {
+        Graphics2D g2d = buff1.createGraphics();
+        g2d.setComposite(
+                AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque));
+        g2d.drawImage(buff2, x, y, null);
+        g2d.dispose();
+    }
+
+    private static BufferedImage resize(BufferedImage img, int newW, int newH) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+        BufferedImage dimg = new BufferedImage(newW, newH, img.getType());
+        Graphics2D g = dimg.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(img, 0, 0, newW, newH, 0, 0, w, h, null);
+        g.dispose();
+        return dimg;
+    }
+    public  BufferedImage mask(BufferedImage BI, String type) throws Exception {
+        CascadeClassifier cascadeFaceClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_frontalface_default.xml");
+        CascadeClassifier cascadeEyeClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_eye.xml");
+        CascadeClassifier cascadeNoseClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_nose.xml");
+        CascadeClassifier cascadeMouthClassifier = new CascadeClassifier(
+                "/home/sargis/workspace/PhotoEditor/src/main/resources/com/photoeditor/xml/haarcascade_mcs_mouth.xml");
+
+        Mat frameCapture = bufferedImageToMat(BI);
+
+        MatOfRect faces = new MatOfRect();
+        cascadeFaceClassifier.detectMultiScale(frameCapture, faces);
+        MatOfRect nose = new MatOfRect();
+        cascadeNoseClassifier.detectMultiScale(frameCapture, nose);
+        MatOfRect mouth = new MatOfRect();
+        cascadeMouthClassifier.detectMultiScale(frameCapture, mouth);
+
+        for (Rect rect : faces.toArray()) {
+            BufferedImage right = ImageIO.read(this.getClass().getResource("snaps/" + type +"/right.png"));
+            BufferedImage left = ImageIO.read(this.getClass().getResource("snaps/" + type +"/left.png"));
+            left = resize(left,rect.width / 2, rect.height / 2);
+            right = resize(right,rect.width / 2, rect.height / 2);
+            addImage(BI,left, 1.0F, (int) (rect.x - rect.width*0.2), (int) (rect.y - rect.height*0.2));
+            addImage(BI,right, 1.0F, (int) ((rect.x + rect.width) - rect.width*0.2), (int) (rect.y - rect.height*0.2));
+        }
+
+
+        for (Rect rect : nose.toArray()) {
+            BufferedImage nose_ = ImageIO.read(this.getClass().getResource("snaps/" + type +"/nose.png"));
+            nose_ = resize(nose_,rect.width , rect.height );
+            addImage(BI,nose_, 1.0F, rect.x , rect.y );
+        }
+
+
+        for (Rect rect : mouth.toArray()) {
+            BufferedImage  tongue = ImageIO.read(this.getClass().getResource("snaps/" + type +"/mouth.png"));
+            tongue = resize(tongue,rect.width * 4, rect.height * 4 );
+            //addImage(BI,tongue, 1.0F, rect.x , rect.y );
+        }
+        return BI;
+    }
+
     public BufferedImage blurImage(BufferedImage BI)
     {
         Kernel k = new Kernel(3, 3, new float[]{1f/(3*3),1f/(3*3),1f/(3*3),
-                                                1f/(3*3),1f/(3*3),1f/(3*3),
-                                                1f/(3*3),1f/(3*3),1f/(3*3)});
+                1f/(3*3),1f/(3*3),1f/(3*3),
+                1f/(3*3),1f/(3*3),1f/(3*3)});
         ConvolveOp op = new ConvolveOp(k);
-         return op.filter(BI, null);
+        return op.filter(BI, null);
     }
 
     public  BufferedImage grayImage(BufferedImage BI){
@@ -61,8 +133,8 @@ public class FiltersClass {
                 int rgba = BI.getRGB(x, y);
                 Color col = new Color(rgba, true);
                 col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
+                        255 - col.getGreen(),
+                        255 - col.getBlue());
                 BI.setRGB(x, y, col.getRGB());
             }
         }

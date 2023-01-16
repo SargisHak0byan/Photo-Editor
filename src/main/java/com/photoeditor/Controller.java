@@ -29,17 +29,13 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
+import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +44,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.Queue;
 import java.util.*;
+
+import static org.opencv.imgproc.Imgproc.resize;
+
 public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private final int CROP = 1;
 	private final int MOVE = 2;
@@ -143,6 +142,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private Label scaleLabel;
 
 	@FXML private ComboBox filtersBox;
+
+	@FXML private ComboBox masksBox;
 	
 	@FXML public ScrollPane canvasPane;
 	@FXML public  ColorPicker colorPicker;
@@ -151,7 +152,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private  int capture_height = 720;
 
 	private ArrayList<Button> linkedButtons = new ArrayList<Button>();
-	
+
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		allExtentions.add("*.png");
@@ -923,6 +924,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 					    gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 						WritableImage obj = null;
 						try {
+							resize(image, image, new Size(capture_width, capture_height));
 							obj = Mat2WritableImage(image);
 						} catch (IOException ex) {
 							throw new RuntimeException(ex);
@@ -982,7 +984,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	
 	private void save() {
 		WritableImage snapshot = canvas.snapshot(sParameters, null);
-		FiltersClass filterTool = new FiltersClass();
+		Filters filterTool = new Filters();
 		String extention="";
 		if(file!=null) {
 			String path = file.getName();
@@ -1175,19 +1177,26 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		// Return the buffered image
 		return bimage;
 	}
-	public static Mat bufferedImageToMat(BufferedImage bi) {
-		Mat mat = new Mat(bi.getHeight(), bi.getWidth(), CvType.CV_8UC3);
-		byte[] data = ((DataBufferByte) bi.getRaster().getDataBuffer()).getData();
-		mat.put(0, 0, data);
-		return mat;
+	public static Mat bufferedImageToMat(BufferedImage in) {
+		Mat out;
+		byte[] data;
+		int r, g, b;
+
+			out = new Mat(in.getHeight(), in.getWidth(), CvType.CV_8UC3);
+			data = new byte[in.getWidth() * in.getHeight() * (int) out.elemSize()];
+			int[] dataBuff = in.getRGB(0, 0, in.getWidth(), in.getHeight(), null, 0, in.getWidth());
+			for (int i = 0; i < dataBuff.length; i++) {
+				data[i * 3] = (byte) ((dataBuff[i] >> 0) & 0xFF);
+				data[i * 3 + 1] = (byte) ((dataBuff[i] >> 8) & 0xFF);
+				data[i * 3 + 2] = (byte) ((dataBuff[i] >> 16) & 0xFF);
+			}
+		out.put(0, 0, data);
+		return out;
 	}
-	public static BufferedImage Mat2BufferedImage(Mat matrix)throws Exception {
+	public static BufferedImage Mat2BufferedImage(Mat matrix)throws IOException {
 		MatOfByte mob=new MatOfByte();
 		Imgcodecs.imencode(".jpg", matrix, mob);
-		byte ba[]=mob.toArray();
-
-		BufferedImage bi=ImageIO.read(new ByteArrayInputStream(ba));
-		return bi;
+		return ImageIO.read(new ByteArrayInputStream(mob.toArray()));
 	}
 
 	public static WritableImage Mat2WritableImage(Mat mat) throws IOException{
@@ -1338,31 +1347,54 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				currentTool=TEXT;
 			}
 		} else if (source.equals(filtersBox)) {
-			FiltersClass filterTool = new FiltersClass();
-			WritableImage wi = new WritableImage((int)gc.getCanvas().getWidth(),
-					(int)gc.getCanvas().getHeight());
-			gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
-			BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
-			if (filtersBox.getValue().equals("Gray")){
-				img = filterTool.grayImage(img);
-			}else if (filtersBox.getValue().equals("Light")){
-				img = filterTool.lightenImage(img);
-			} else if (filtersBox.getValue().equals("Dark")){
-				img = filterTool.darkenImage(img);
-			} else  if (filtersBox.getValue().equals("Blur")){
-				img = filterTool.blurImage(img);
-			} else if (filtersBox.getValue().equals("Invert")){
-				img = filterTool.invertImage(img);
-			} else if(filtersBox.getValue().equals("Mirror")) {
-				img = filterTool.mirrorImage(img);
-			} else if (filtersBox.getValue().equals("Sepia")){
-				img = filterTool.sepiaImage(img);
-			}
-
-			filterTool.WaterMark(img,"", img.getWidth() / 5, img.getHeight() / 3);
-			addNewSnapshot(SwingFXUtils.toFXImage(img, null));
-			gc.drawImage(SwingFXUtils.toFXImage(img, null),0,0);
-			filtersBox.setValue("None");
+			filterBox_check();
+		} else  if (source.equals(masksBox)){
+			masksBox_check();
 		}
+	}
+	private void masksBox_check(){
+		Filters filterTool = new Filters();
+		WritableImage wi = new WritableImage((int)gc.getCanvas().getWidth(),
+				(int)gc.getCanvas().getHeight());
+		gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
+		BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
+		if (masksBox.getValue().equals("Dog")){
+			try {
+				img = filterTool.mask(img, "Dog");
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		addNewSnapshot(SwingFXUtils.toFXImage(img, null));
+		gc.drawImage(SwingFXUtils.toFXImage(img, null),0,0);
+		filtersBox.setValue("None");
+	}
+	private void filterBox_check() {
+		Filters filterTool = new Filters();
+		WritableImage wi = new WritableImage((int)gc.getCanvas().getWidth(),
+				(int)gc.getCanvas().getHeight());
+		gc.getCanvas().snapshot(null, wi); //Coping all that now in Canvas
+		BufferedImage img = SwingFXUtils.fromFXImage((Image)wi, null);
+		if (filtersBox.getValue().equals("Gray")){
+			img = filterTool.grayImage(img);
+		}else if (filtersBox.getValue().equals("Light")){
+			img = filterTool.lightenImage(img);
+		} else if (filtersBox.getValue().equals("Dark")){
+			img = filterTool.darkenImage(img);
+		} else  if (filtersBox.getValue().equals("Blur")){
+			img = filterTool.blurImage(img);
+		} else if (filtersBox.getValue().equals("Invert")){
+			img = filterTool.invertImage(img);
+		} else if(filtersBox.getValue().equals("Mirror")) {
+			img = filterTool.mirrorImage(img);
+		} else if (filtersBox.getValue().equals("Sepia")){
+			img = filterTool.sepiaImage(img);
+		}
+
+		filterTool.WaterMark(img,"", img.getWidth() / 5, img.getHeight() / 3);
+		addNewSnapshot(SwingFXUtils.toFXImage(img, null));
+		gc.drawImage(SwingFXUtils.toFXImage(img, null),0,0);
+		filtersBox.setValue("None");
 	}
 }

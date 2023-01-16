@@ -308,6 +308,13 @@
 	-fx-border-color: #737373;
 }
 
+#masks-box{
+	-fx-border-radius: 15 15 15 15;
+	-fx-background-radius: 15 15 15 15;
+	-fx-background-color: #949494;
+	-fx-border-color: #737373;
+}
+
 /*coordinate drawer */
 
 #start-x-field{

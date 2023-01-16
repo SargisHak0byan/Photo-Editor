@@ -76,6 +76,7 @@
                     <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                     <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                     <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
+                    <ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
                 </columnConstraints>
                 <children>
                     <GridPane GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="pane-with-border">
@@ -240,7 +241,7 @@
                             </GridPane>
                         </children>
                     </GridPane>
-                    <GridPane GridPane.rowIndex="0" GridPane.columnIndex="5" >
+                    <GridPane GridPane.rowIndex="0" GridPane.columnIndex="5"  styleClass="pane-with-border">
                         <rowConstraints>
                             <RowConstraints percentHeight="20.0" valignment="CENTER"/>
                             <RowConstraints percentHeight="80.0" valignment="CENTER"/>
@@ -276,6 +277,40 @@
                             </GridPane>
                         </children>
                     </GridPane>
+
+                    <GridPane GridPane.rowIndex="0" GridPane.columnIndex="6"  styleClass="pane-with-border">
+                        <rowConstraints>
+                            <RowConstraints percentHeight="20.0" valignment="CENTER"/>
+                            <RowConstraints percentHeight="80.0" valignment="CENTER"/>
+                        </rowConstraints>
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+                        </columnConstraints>
+
+                        <children>
+                            <Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Masks" styleClass="highlight-label"/>
+                            <GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
+                                <rowConstraints>
+                                    <RowConstraints percentHeight="80.0" valignment="CENTER"/>
+                                </rowConstraints>
+                                <columnConstraints>
+                                    <ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+                                </columnConstraints>
+                                <children>
+                                    <ComboBox value="None" onAction="#handle" fx:id="masksBox" id="masks-box">
+                                        <items>
+                                            <FXCollections fx:factory="observableArrayList">
+                                                <String fx:value="None"/>
+                                                <String fx:value="Dog"/>
+                                            </FXCollections>
+                                        </items>
+                                    </ComboBox>
+                                </children>
+                            </GridPane>
+                        </children>
+                    </GridPane>
+
+
                 </children>
             </GridPane>
         </VBox>
